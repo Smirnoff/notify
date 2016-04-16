@@ -1,36 +1,51 @@
 open Core.Std
 
+let is_json_something_optional name json =
+  let open Yojson.Basic.Util in
+  match member name json with
+  | `Bool value -> value
+  | _           -> false
+
+let is_json_deleted = is_json_something_optional "deleted"
+let is_json_dead    = is_json_something_optional "dead"
+
 type job = {
-  id    : int;
-  by    : string;
-  time  : Core.Time.t;
-  text  : string;
-  title : string;
-  score : int;
-  url   : string;
+  id      : int;
+  by      : string;
+  time    : Core.Time.t;
+  text    : string;
+  title   : string;
+  score   : int;
+  url     : string;
+  deleted : bool;
+  dead    : bool;
 }
 
-let json_of_job { id; by; time; text; title; score; url; } =
+let json_of_job { id; by; time; text; title; score; url; deleted; dead; } =
   `Assoc [
-     "id",    `Int    id;
-     "by",    `String by;
-     "time",  `Int    (time |> Core.Time.to_epoch |> Float.to_int);
-     "text",  `String text;
-     "title", `String title;
-     "score", `Int    score;
-     "url",   `String url;
+     "id",      `Int    id;
+     "by",      `String by;
+     "time",    `Int    (time |> Core.Time.to_epoch |> Float.to_int);
+     "text",    `String text;
+     "title",   `String title;
+     "score",   `Int    score;
+     "url",     `String url;
+     "deleted", `Bool deleted;
+     "dead",    `Bool dead;
    ]
 
 let job_of_json json =
   let open Yojson.Basic.Util in
   {
-    id    = member "id"    json |> to_int;
-    by    = member "by"    json |> to_string;
-    time  = member "time"  json |> to_int |> Float.of_int |> Core.Time.of_float;
-    text  = member "text"  json |> to_string;
-    title = member "title" json |> to_string;
-    score = member "score" json |> to_int;
-    url   = member "url"   json |> to_string;
+    id      = member "id"    json |> to_int;
+    by      = member "by"    json |> to_string;
+    time    = member "time"  json |> to_int |> Float.of_int |> Core.Time.of_float;
+    text    = member "text"  json |> to_string;
+    title   = member "title" json |> to_string;
+    score   = member "score" json |> to_int;
+    url     = member "url"   json |> to_string;
+    deleted = is_json_deleted json;
+    dead    = is_json_deleted json;
   }
 
 type story = {
@@ -42,9 +57,12 @@ type story = {
   url         : string;
   kids        : int list;
   descendants : int;
+  deleted     : bool;
+  dead        : bool;
 }
 
-let json_of_story { id; by; time; title; score; url; kids; descendants; } =
+let json_of_story { id; by; time; title; score; url; kids; descendants;
+                    deleted; dead; } =
   `Assoc [
      "id",          `Int    id;
      "by",          `String by;
@@ -54,6 +72,8 @@ let json_of_story { id; by; time; title; score; url; kids; descendants; } =
      "url",         `String url;
      "kids",        `List   (List.map ~f:(fun x -> `Int x) kids);
      "descendants", `Int    descendants;
+     "deleted",     `Bool deleted;
+     "dead",        `Bool dead;
    ]
 
 let story_of_json json =
@@ -67,25 +87,31 @@ let story_of_json json =
     url   = member "url"   json |> to_string;
     kids  = member "kids"  json |> to_list |> List.map ~f:to_int;
     descendants = member "descendants" json |> to_int;
+    deleted     = is_json_deleted json;
+    dead        = is_json_deleted json;
   }
 
 type comment = {
-  id     : int;
-  by     : string;
-  time   : Core.Time.t;
-  text   : string;
-  parent : int;
-  kids   : int list;
+  id      : int;
+  by      : string;
+  time    : Core.Time.t;
+  text    : string;
+  parent  : int;
+  kids    : int list;
+  deleted : bool;
+  dead    : bool;
 }
 
-let json_of_comment { id; by; time; text; parent; kids; } =
+let json_of_comment { id; by; time; text; parent; kids; deleted; dead; } =
   `Assoc [
-     "id",     `Int    id;
-     "by",     `String by;
-     "time",   `Int    (time |> Core.Time.to_epoch |> Float.to_int);
-     "text",   `String text;
-     "parent", `Int    parent;
-     "kids",   `List   (List.map ~f:(fun x -> `Int x) kids);
+     "id",      `Int    id;
+     "by",      `String by;
+     "time",    `Int    (time |> Core.Time.to_epoch |> Float.to_int);
+     "text",    `String text;
+     "parent",  `Int    parent;
+     "kids",    `List   (List.map ~f:(fun x -> `Int x) kids);
+     "deleted", `Bool deleted;
+     "dead",    `Bool dead;
    ]
 
 let comment_of_json json =
@@ -97,6 +123,8 @@ let comment_of_json json =
     text   = member "text"   json |> to_string;
     kids   = member "kids"   json |> to_list |> List.map ~f:to_int;
     parent = member "parent" json |> to_int;
+    deleted = is_json_deleted json;
+    dead    = is_json_deleted json;
   }
 
 type poll = {
@@ -109,10 +137,13 @@ type poll = {
   parts       : int list;
   kids        : int list;
   descendants : int;
+  deleted     : bool;
+  dead        : bool;
 }
 
 let json_of_poll { id; by; time; text; title; score;
-                   parts; kids; descendants; } =
+                   parts; kids; descendants;
+                   deleted; dead; } =
   `Assoc [
      "id",           `Int    id;
      "by",           `String by;
@@ -123,6 +154,8 @@ let json_of_poll { id; by; time; text; title; score;
      "kids",         `List   (List.map ~f:(fun x -> `Int x) kids);
      "parts",        `List   (List.map ~f:(fun x -> `Int x) parts);
      "descendants",  `Int    descendants;
+     "deleted",      `Bool deleted;
+     "dead",         `Bool dead;
    ]
 
 let poll_of_json json =
@@ -140,39 +173,47 @@ let poll_of_json json =
     kids        = member "kids"        json |> to_list |> List.map ~f:to_int;
     parts       = member "parts"       json |> to_list |> List.map ~f:to_int;
     descendants = member "descendants" json |> to_int;
+    deleted     = is_json_deleted json;
+    dead        = is_json_deleted json;
   }
 
 type pollopt = {
-  id     : int;
-  by     : string;
-  time   : Core.Time.t;
-  text   : string;
-  score  : int;
-  parent : int;
+  id      : int;
+  by      : string;
+  time    : Core.Time.t;
+  text    : string;
+  score   : int;
+  parent  : int;
+  deleted : bool;
+  dead    : bool;
 }
 
-let json_of_pollopt { id; by; time; text; score; parent; } =
+let json_of_pollopt { id; by; time; text; score; parent; deleted; dead; } =
   `Assoc [
-     "id",     `Int    id;
-     "by",     `String by;
-     "time",   `Int    (time |> Core.Time.to_epoch |> Float.to_int);
-     "text",   `String text;
-     "score",  `Int    score;
-     "parent", `Int    parent;
+     "id",      `Int    id;
+     "by",      `String by;
+     "time",    `Int    (time |> Core.Time.to_epoch |> Float.to_int);
+     "text",    `String text;
+     "score",   `Int    score;
+     "parent",  `Int    parent;
+     "deleted", `Bool deleted;
+     "dead",    `Bool dead;
    ]
 
 let pollopt_of_json json =
   let open Yojson.Basic.Util in
   {
-    id     = member "id"     json |> to_int;
-    by     = member "by"     json |> to_string;
-    time   = member "time"   json |>
-               to_int |>
-               Float.of_int |>
-               Core.Time.of_float;
-    text   = member "text"   json |> to_string;
-    score  = member "score"       json |> to_int;
-    parent = member "parent" json |> to_int;
+    id      = member "id"     json |> to_int;
+    by      = member "by"     json |> to_string;
+    time    = member "time"   json |>
+                to_int |>
+                Float.of_int |>
+                Core.Time.of_float;
+    text    = member "text"   json |> to_string;
+    score   = member "score"       json |> to_int;
+    parent  = member "parent" json |> to_int;
+    deleted = is_json_deleted json;
+    dead    = is_json_deleted json;
   }
 
 type t =
