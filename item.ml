@@ -1,3 +1,4 @@
+open Lwt
 open Core.Std
 
 let is_json_something_optional name json =
@@ -121,7 +122,7 @@ let comment_of_json json =
     by     = member "by"     json |> to_string;
     time   = member "time"   json |> to_int |> Float.of_int |> Core.Time.of_float;
     text   = member "text"   json |> to_string;
-    kids   = member "kids"   json |> to_list |> List.map ~f:to_int;
+    kids   = member "kids"   json |> Hn_misc.to_list_nullable |> List.map ~f:to_int;
     parent = member "parent" json |> to_int;
     deleted = is_json_deleted json;
     dead    = is_json_deleted json;
@@ -249,3 +250,24 @@ let t_of_json json =
   match t_of_json_opt json with
   | None     -> failwith "Invalid item"
   | Some res -> res
+
+let id = function
+  | JobItem     { id; _ } -> id
+  | StoryItem   { id; _ } -> id
+  | CommentItem { id; _ } -> id
+  | PollItem    { id; _ } -> id
+  | PolloptItem { id; _ } -> id
+
+let item_base_url = Hn_misc.base_versioned_url ^ "/item"
+
+let uri_from_id id =
+  Uri.of_string (Format.sprintf "%s/%d.json" item_base_url id)
+
+let uri item = id item |> uri_from_id
+
+let lwt_get_by_id id =
+  uri_from_id id |> Hn_misc.lwt_get_json_uri >|= fun json ->
+  try
+    t_of_json json
+  with
+    _ -> failwith (sprintf "Failed to convert item #%d" id)

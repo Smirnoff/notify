@@ -1,0 +1,3 @@
+# ok, so, compiling anything will have these packages, also threads
+# might want to make this more nuanced at some point
+<*.{native,byte}> or <*.ml>: package(lwt), package(lwt.syntax), package(cohttp), package(cohttp.lwt), package(core), package(yojson), thread
