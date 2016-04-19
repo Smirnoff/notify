@@ -1,13 +1,4 @@
-open Config_file
 open Core.Std
-
-let group = new group
-let access_token_timeout_cp =
-  new int_cp ~group
-      ["access_token_timeout"]
-      (* 60 seconds times 60 minutes times 24 hours times 30 days *)
-      (60 * 60 * 24 * 30)
-      "Access token timeout in seconds"
 
 let random_string () =
   2.0 ** 28.0 |> Int.of_float |> Random.int |> Int.to_string
@@ -38,11 +29,11 @@ let is_old { expiry; _ } =
   -1 = (Core.Time.compare expiry (Core.Time.now ()))
 
 let new_access_token () =
-  group#read "config" ;
   {
     value = random_string ();
     expiry = Core.Time.add (Core.Time.now ())
-                           (Core.Span.of_int_sec access_token_timeout_cp#get);
+                           (Core.Span.of_int_sec
+                              Config.access_token_timeout_cp#get);
   }
 
 type t = {

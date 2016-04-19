@@ -154,6 +154,7 @@ let server =
   Server.create ~mode:(`TCP (`Port 8000)) (Server.make ~callback ())
 
 let main () =
+  Config.group#read "config" ;
   Unix.time () |> Float.to_int |> Random.init ;
   ignore(
       Hashtbl.add api_calls
