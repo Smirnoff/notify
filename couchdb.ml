@@ -80,8 +80,10 @@ let put db_uri id json =
   Client.put ~body:(Yojson.Basic.to_string json |> Cohttp_lwt_body.of_string)
              (object_uri db_uri id) >>= fun (resp, body) ->
   if Response.status resp = `Created
-  then body |> Cohttp_lwt_body.to_string >|=
-         Yojson.Basic.from_string
+  then (body |> Cohttp_lwt_body.to_string >|=
+          Yojson.Basic.from_string >>= fun json ->
+        let open Yojson.Basic.Util in
+        Lwt.return (member "ok" json |> to_bool ))
   else failwith "Failed to put item"
 
 let json_delete target json =
