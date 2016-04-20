@@ -141,6 +141,29 @@ let logout_callback conn req body =
            ())
   | _ -> fail_with_bad_call ();;
 
+let get_post_api_user_callback conn req body =
+  match Request.meth req with
+  | `GET ->
+     (match_lwt current_user conn req body with
+      | None -> Server.respond_error ~status:`I_m_a_teapot
+                                     ~body:"Not logged in\n" ()
+      | Some user ->
+         Server.respond_string
+           ~status:`OK
+           ~body:(Yojson.Basic.to_string (Api_user.api_json_of_t user)) ())
+  | `POST ->
+     (match_lwt current_user conn req body with
+      | None -> Server.respond_error ~status:`I_m_a_teapot
+                                     ~body:"Not logged in\n" ()
+      | Some user ->
+         body |> Cohttp_lwt_body.to_string >>= fun body ->
+         let json = Yojson.Basic.from_string body in
+         let new_user = Api_user.update_t_from_api_json user json in
+         lwt success = Api_user.put_t new_user in
+         if not success then failwith "Failed to save user" ;
+         Server.respond_string ~status:`OK ~body:"true" ())
+  | _ -> fail_with_bad_call ();;
+
 let server =
   let callback conn req body =
     let uri = req |> Request.uri in
@@ -172,6 +195,10 @@ let main () =
       Hashtbl.add api_calls
                   ~key:"/logout"
                   ~data:logout_callback) ;
+  ignore(
+      Hashtbl.add api_calls
+                  ~key:"/current-api-user"
+                  ~data:get_post_api_user_callback) ;
   Api_user.add_map_views () ;
   Couchdb.init_map_views () ;
   ignore (Lwt_main.run server)

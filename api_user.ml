@@ -201,3 +201,33 @@ let put_t item =
            else Option.value_exn item.id in
   let item = { item with id = Some id } in
   put_hnnotify id (json_of_t item)
+
+(* api views of this object *)
+
+let api_json_of_t { id; rev; email; items; users; topics; _ } =
+  `Assoc [
+     "id",            if id = None
+                      then `Null
+                      else `String (Option.value_exn id);
+     "rev",           if rev = None
+                      then `Null
+                      else `String (Option.value_exn rev);
+     "email",         `String email;
+     "items",         `List (List.map ~f:(fun x -> `Int x) items);
+     "users",         `List (List.map ~f:(fun x -> `String x) users);
+     "topics",        `List (List.map ~f:(fun x -> `String x) topics);
+   ]
+
+let update_t_from_api_json existing json =
+  let open Yojson.Basic.Util in
+  let id    = member "id" json    |> to_string in
+  let email = member "email" json |> to_string in
+  if id <> (Option.value_exn existing.id) then failwith "ID mismatch";
+  if email <> existing.email then failwith "email mismatch";
+  {
+    existing with
+    rev    = Some (member "rev" json |> to_string);
+    items  = member "items" json  |> to_list |> List.map ~f:to_int;
+    users  = member "users" json  |> to_list |> List.map ~f:to_string;
+    topics = member "topics" json |> to_list |> List.map ~f:to_string;
+  }
