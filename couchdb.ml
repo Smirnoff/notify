@@ -20,6 +20,62 @@ let get db_uri id =
     | None       -> failwith "Couldn't get item"
     | Some value -> Lwt.return res
 
+let view_uri db_uri id_suffix view query =
+  let id = "/_design/" ^ id_suffix in
+  let full_id = id ^ "/_view/" ^ view in
+  Uri.make ~scheme:(Option.value_exn (Uri.scheme db_uri))
+           ~host:(Option.value_exn (Uri.host db_uri))
+           ~port:(Option.value_exn (Uri.port db_uri))
+           ~path:((Uri.path db_uri) ^ full_id)
+           ~query
+           ()
+
+let view_query_args ?key:(key=`Null)
+                    ?include_docs:(include_docs=`Null)
+                    ?startkey:(startkey=`Null)
+                    ?endkey:(endkey=`Null)
+                    ?descending:(descending=`Null) () =
+  let json_to_string = Yojson.Basic.to_string in
+  ["key", key;
+   "include_docs", include_docs;
+   "startkey", startkey;
+   "endkey", endkey;
+   "descending", descending;] |>
+    List.map ~f:(fun (name, json) ->
+                 if json = `Null
+                 then []
+                 else [name, [json_to_string json]]) |>
+    List.concat
+
+let raw_get_view db_uri id_suffix view query =
+  Client.get (view_uri db_uri id_suffix view query) >>= fun (resp, body) ->
+  if Response.status resp = `OK
+  then body |> Cohttp_lwt_body.to_string >|= Yojson.Basic.from_string
+  else failwith "Failed to get view"
+
+let view_results_to_string_alist_with_doc json =
+  let open Yojson.Basic.Util in
+  let rows = member "rows" json |> to_list in
+  List.map ~f:(fun json ->
+               let key = member "key" json |> to_string in
+               (key, member "value" json, member "doc" json))
+           rows
+
+let view_results_to_string_alist json =
+  view_results_to_string_alist_with_doc json |>
+    List.map ~f:(fun (key, value, doc) -> (key, value))
+
+let get_raw_view_query db_uri id_suffix view =
+  fun ?key:(key=`Null)
+      ?include_docs:(include_docs=`Null)
+      ?startkey:(startkey=`Null)
+      ?endkey:(endkey=`Null)
+      ?descending:(descending=`Null) () ->
+  raw_get_view
+    db_uri id_suffix view
+    (view_query_args ~key ~include_docs
+                     ~startkey ~endkey ~descending ())
+
 let put db_uri id json =
   Client.put ~body:(Yojson.Basic.to_string json |> Cohttp_lwt_body.of_string)
              (object_uri db_uri id) >>= fun (resp, body) ->
@@ -62,3 +118,12 @@ let ensure_map_view db_uri id_suffix view map_func =
   | Some existing ->
      put db_uri id
          (update_view_doc existing view map_func)
+
+let map_view_init_functions = ref []
+
+let init_map_views () =
+  List.iter !map_view_init_functions
+            ~f:(fun func -> func ())
+
+let append_map_view_init_function func =
+  map_view_init_functions := func :: !map_view_init_functions

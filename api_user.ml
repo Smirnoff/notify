@@ -1,5 +1,7 @@
 open Core.Std
 
+let t_tag = "api_user"
+
 let random_string () =
   2.0 ** 28.0 |> Int.of_float |> Random.int |> Int.to_string
 
@@ -37,6 +39,8 @@ let new_access_token () =
   }
 
 type t = {
+  id            : string option;
+  rev           : string option;
   email         : string;
   salt          : string;
   password_hash : string;
@@ -50,10 +54,18 @@ type t = {
   topics        : string list;
 }
 
-let json_of_t { email; salt; password_hash; reset_code;
+let json_of_t { id; rev;
+                email; salt; password_hash; reset_code;
                 access_tokens;
                 items; users; topics; } =
   `Assoc [
+     "_id",           if id = None
+                      then `Null
+                      else `String (Option.value_exn id);
+     "_rev",          if rev = None
+                      then `Null
+                      else `String (Option.value_exn rev);
+     "type",          `String t_tag;
      "email",         `String email;
      "salt",          `String salt;
      "password_hash", `String password_hash;
@@ -69,6 +81,8 @@ let json_of_t { email; salt; password_hash; reset_code;
 let t_of_json json =
   let open Yojson.Basic.Util in
   {
+    id            = member "_id" json           |> to_string_option;
+    rev           = member "_rev" json          |> to_string_option;
     email         = member "email" json         |> to_string;
     salt          = member "salt" json          |> to_string;
     password_hash = member "password_hash" json |> to_string;
@@ -99,6 +113,8 @@ let make ~email
          ?password:(password = random_string ())
          () =
   update {
+      id            = None;
+      rev           = None;
       email         = email;
       salt          = "";
       password_hash = "";
@@ -151,3 +167,37 @@ let is_valid_access_token user value =
   not (None = List.find access_tokens
                         ~f:(fun {value = other_value; _ } ->
                             value = other_value))
+
+let add_map_views () =
+  Couchdb.append_map_view_init_function (fun () ->
+    ignore
+      (Lwt_main.run
+         (Couchdb.ensure_map_view
+            (Config.database_uri ())
+            "api_user" "by_email"
+            (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.email, null); } }"
+                     t_tag))))
+
+open Lwt
+
+let hnnotify_view = Couchdb.get_raw_view_query (Config.database_uri ())
+let api_user_view = hnnotify_view t_tag
+let by_email_view = api_user_view "by_email"
+
+let get_t_by_email_opt email =
+  match_lwt (by_email_view ~include_docs:(`Bool true)
+                           ~key:(`String email)
+                           () >|=
+               Couchdb.view_results_to_string_alist_with_doc) with
+  | [_, _, json] -> Lwt.return (Some (t_of_json json))
+  | [_, _, _; _] -> failwith "Multiple of email"
+  | _            -> Lwt.return None
+
+let put_hnnotify = Couchdb.put (Config.database_uri ())
+
+let put_t item = 
+  let id = if item.id = None
+           then (Uuid.create () |> Uuid.to_string)
+           else Option.value_exn item.id in
+  let item = { item with id = Some id } in
+  put_hnnotify id (json_of_t item)

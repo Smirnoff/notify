@@ -176,4 +176,6 @@ let main () =
       Hashtbl.add api_calls
                   ~key:"/logout"
                   ~data:logout_callback) ;
+  Api_user.add_map_views () ;
+  Couchdb.init_map_views () ;
   ignore (Lwt_main.run server)
