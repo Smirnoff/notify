@@ -1,4 +1,4 @@
-stolik-sketch
+notify
 =============
 
-Sketch design for Stolik Manager app
+Our custom-made API to handle our Hacker News notifications.
