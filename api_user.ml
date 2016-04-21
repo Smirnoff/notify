@@ -58,13 +58,10 @@ let json_of_t { id; rev;
                 email; salt; password_hash; reset_code;
                 access_tokens;
                 items; users; topics; } =
-  `Assoc [
+  `Assoc ([
      "_id",           if id = None
                       then `Null
                       else `String (Option.value_exn id);
-     "_rev",          if rev = None
-                      then `Null
-                      else `String (Option.value_exn rev);
      "type",          `String t_tag;
      "email",         `String email;
      "salt",          `String salt;
@@ -76,7 +73,9 @@ let json_of_t { id; rev;
      "items",         `List (List.map ~f:(fun x -> `Int x) items);
      "users",         `List (List.map ~f:(fun x -> `String x) users);
      "topics",        `List (List.map ~f:(fun x -> `String x) topics);
-   ]
+   ] @ (if rev = None
+        then []
+        else ["_rev", `String (Option.value_exn rev)]))
 
 let t_of_json json =
   let open Yojson.Basic.Util in

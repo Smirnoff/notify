@@ -18,7 +18,7 @@ let get db_uri id =
   get_opt db_uri id >>= fun res ->
     match res with
     | None       -> failwith "Couldn't get item"
-    | Some value -> Lwt.return res
+    | Some value -> Lwt.return value
 
 let view_uri db_uri id_suffix view query =
   let id = "/_design/" ^ id_suffix in
