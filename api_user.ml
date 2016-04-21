@@ -168,18 +168,30 @@ let is_valid_access_token user value =
                             value = other_value))
 
 let add_map_views () =
+  let ensure_map_view = Couchdb.ensure_map_view Config.database_uri in
   Couchdb.append_map_view_init_function (fun () ->
     ignore
       (Lwt_main.run
-         (Couchdb.ensure_map_view
-            (Config.database_uri ())
+         (ensure_map_view
+            "api_user" "watched_items"
+            (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.items.length; idx++) { emit(doc.items[idx], doc._id); }}}"
+                     t_tag))) ;
+    ignore
+      (Lwt_main.run
+         (ensure_map_view
+            "api_user" "watched_users"
+            (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.users.length; idx++) { emit(doc.users[idx], doc._id); }}}"
+                     t_tag))) ;
+    ignore
+      (Lwt_main.run
+         (ensure_map_view
             "api_user" "by_email"
             (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.email, null); } }"
                      t_tag))))
 
 open Lwt
 
-let hnnotify_view = Couchdb.get_raw_view_query (Config.database_uri ())
+let hnnotify_view = Couchdb.get_raw_view_query Config.database_uri
 let api_user_view = hnnotify_view t_tag
 let by_email_view = api_user_view "by_email"
 
@@ -192,7 +204,7 @@ let get_t_by_email_opt email =
   | [_, _, _; _] -> failwith "Multiple of email"
   | _            -> Lwt.return None
 
-let put_hnnotify = Couchdb.put (Config.database_uri ())
+let put_hnnotify = Couchdb.put Config.database_uri
 
 let put_t item = 
   let id = if item.id = None
@@ -230,3 +242,22 @@ let update_t_from_api_json existing json =
     users  = member "users" json  |> to_list |> List.map ~f:to_string;
     topics = member "topics" json |> to_list |> List.map ~f:to_string;
   }
+
+let by_watched_items_view = api_user_view "watched_items"
+
+let user_ids_watching_item item_id =
+  by_watched_items_view ~startkey:(`Int item_id) ~endkey:(`Int item_id) () >|=
+    Couchdb.view_results_to_int_alist >|=
+    List.map ~f:(fun (key, value) ->
+                 let open Yojson.Basic.Util in
+                 to_string value)
+
+let by_watched_users_view = api_user_view "watched_users"
+
+let user_ids_watching_user username =
+  by_watched_users_view ~startkey:(`String username)
+                        ~endkey:(`String username) () >|=
+    Couchdb.view_results_to_string_alist >|=
+    List.map ~f:(fun (key, value) ->
+                 let open Yojson.Basic.Util in
+                 to_string value)

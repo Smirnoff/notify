@@ -4,25 +4,27 @@ open Cohttp_lwt_unix
 
 open Core.Std
 
-let object_uri db_uri id =
+let object_uri db_uri_getter id =
+  let db_uri = db_uri_getter () in
   Uri.of_string ((Uri.to_string db_uri) ^ "/" ^ id)
 
-let get_opt db_uri id =
-  Client.get (object_uri db_uri id) >>= fun (resp, body) ->
+let get_opt db_uri_getter id =
+  Client.get (object_uri db_uri_getter id) >>= fun (resp, body) ->
   if Response.status resp = `OK
   then body |> Cohttp_lwt_body.to_string >|=
          (fun body -> Some (Yojson.Basic.from_string body))
   else Lwt.return None
 
-let get db_uri id =
-  get_opt db_uri id >>= fun res ->
+let get db_uri_getter id =
+  get_opt db_uri_getter id >>= fun res ->
     match res with
     | None       -> failwith "Couldn't get item"
     | Some value -> Lwt.return value
 
-let view_uri db_uri id_suffix view query =
+let view_uri db_uri_getter id_suffix view query =
   let id = "/_design/" ^ id_suffix in
   let full_id = id ^ "/_view/" ^ view in
+  let db_uri = db_uri_getter () in
   Uri.make ~scheme:(Option.value_exn (Uri.scheme db_uri))
            ~host:(Option.value_exn (Uri.host db_uri))
            ~port:(Option.value_exn (Uri.port db_uri))
@@ -47,38 +49,53 @@ let view_query_args ?key:(key=`Null)
                  else [name, [json_to_string json]]) |>
     List.concat
 
-let raw_get_view db_uri id_suffix view query =
-  Client.get (view_uri db_uri id_suffix view query) >>= fun (resp, body) ->
+let raw_get_view db_uri_getter id_suffix view query =
+  Client.get (view_uri db_uri_getter id_suffix view query) >>= fun (resp, body) ->
   if Response.status resp = `OK
   then body |> Cohttp_lwt_body.to_string >|= Yojson.Basic.from_string
   else failwith "Failed to get view"
 
-let view_results_to_string_alist_with_doc json =
+let view_results_to_X_alist_with_doc key_func json =
   let open Yojson.Basic.Util in
   let rows = member "rows" json |> to_list in
   List.map ~f:(fun json ->
-               let key = member "key" json |> to_string in
+               let key = member "key" json |> key_func in
                (key, member "value" json, member "doc" json))
            rows
 
+let view_results_to_string_alist_with_doc json =
+  let open Yojson.Basic.Util in
+  view_results_to_X_alist_with_doc to_string json
+
+let view_results_to_int_alist_with_doc json =
+  let open Yojson.Basic.Util in
+  view_results_to_X_alist_with_doc to_int json
+
+let alist_with_doc_to_alist =
+  List.map ~f:(fun (key, value, doc) -> (key, value))
+
 let view_results_to_string_alist json =
   view_results_to_string_alist_with_doc json |>
-    List.map ~f:(fun (key, value, doc) -> (key, value))
+    alist_with_doc_to_alist
 
-let get_raw_view_query db_uri id_suffix view =
+let view_results_to_int_alist json =
+  view_results_to_int_alist_with_doc json |>
+    alist_with_doc_to_alist
+
+let get_raw_view_query db_uri_getter id_suffix view =
   fun ?key:(key=`Null)
       ?include_docs:(include_docs=`Null)
       ?startkey:(startkey=`Null)
       ?endkey:(endkey=`Null)
       ?descending:(descending=`Null) () ->
   raw_get_view
-    db_uri id_suffix view
+    db_uri_getter id_suffix view
     (view_query_args ~key ~include_docs
                      ~startkey ~endkey ~descending ())
 
-let put db_uri id json =
+let put db_uri_getter id json =
   Client.put ~body:(Yojson.Basic.to_string json |> Cohttp_lwt_body.of_string)
-             (object_uri db_uri id) >>= fun (resp, body) ->
+             (object_uri db_uri_getter id) >>= fun (resp, body) ->
   if Response.status resp = `Created
   then (body |> Cohttp_lwt_body.to_string >|=
           Yojson.Basic.from_string >>= fun json ->
@@ -111,14 +128,14 @@ let update_view_doc doc view map_func =
                                      entries))))
   | _ -> failwith "bad document"
 
-let ensure_map_view db_uri id_suffix view map_func =
+let ensure_map_view db_uri_getter id_suffix view map_func =
   let id = "_design/" ^ id_suffix in
-  match_lwt get_opt db_uri id with
+  match_lwt get_opt db_uri_getter id with
   | None ->
-     put db_uri id
+     put db_uri_getter id
          (update_view_doc (empty_view_doc id_suffix) view map_func)
   | Some existing ->
-     put db_uri id
+     put db_uri_getter id
          (update_view_doc existing view map_func)
 
 let map_view_init_functions = ref []
