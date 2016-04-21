@@ -1,0 +1,13 @@
+[Unit]
+Description=Hacker News Notify API
+#After=couchdb.service
+#Requires=couchdb.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'cd ~/projects/hacker-news-notify-api ; ocamlbuild -use-ocamlfind run_api.native ; ./run_api.native'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
