@@ -58,24 +58,23 @@ let json_of_t { id; rev;
                 email; salt; password_hash; reset_code;
                 access_tokens;
                 items; users; topics; } =
-  `Assoc ([
-     "_id",           if id = None
-                      then `Null
-                      else `String (Option.value_exn id);
-     "type",          `String t_tag;
-     "email",         `String email;
-     "salt",          `String salt;
-     "password_hash", `String password_hash;
-     "reset_code",    if reset_code = None
-                      then `Null
-                      else `String (Option.value_exn reset_code);
-     "access_tokens", `List (List.map ~f:json_of_access_token access_tokens);
-     "items",         `List (List.map ~f:(fun x -> `Int x) items);
-     "users",         `List (List.map ~f:(fun x -> `String x) users);
-     "topics",        `List (List.map ~f:(fun x -> `String x) topics);
-   ] @ (if rev = None
-        then []
-        else ["_rev", `String (Option.value_exn rev)]))
+  Couchdb.add_rev rev
+    (`Assoc [
+        "_id",           if id = None
+                         then `Null
+                         else `String (Option.value_exn id);
+        "type",          `String t_tag;
+        "email",         `String email;
+        "salt",          `String salt;
+        "password_hash", `String password_hash;
+        "reset_code",    if reset_code = None
+                         then `Null
+                         else `String (Option.value_exn reset_code);
+        "access_tokens", `List (List.map ~f:json_of_access_token access_tokens);
+        "items",         `List (List.map ~f:(fun x -> `Int x) items);
+        "users",         `List (List.map ~f:(fun x -> `String x) users);
+        "topics",        `List (List.map ~f:(fun x -> `String x) topics);
+      ])
 
 let t_of_json json =
   let open Yojson.Basic.Util in
@@ -168,24 +167,24 @@ let is_valid_access_token user value =
                             value = other_value))
 
 let add_map_views () =
-  let ensure_map_view = Couchdb.ensure_map_view Config.database_uri in
+  let ensure_map_view = Couchdb.ensure_map_view Config.database_uri t_tag in
   Couchdb.append_map_view_init_function (fun () ->
     ignore
       (Lwt_main.run
          (ensure_map_view
-            "api_user" "watched_items"
+            "watched_items"
             (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.items.length; idx++) { emit(doc.items[idx], doc._id); }}}"
                      t_tag))) ;
     ignore
       (Lwt_main.run
          (ensure_map_view
-            "api_user" "watched_users"
+            "watched_users"
             (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.users.length; idx++) { emit(doc.users[idx], doc._id); }}}"
                      t_tag))) ;
     ignore
       (Lwt_main.run
          (ensure_map_view
-            "api_user" "by_email"
+            "by_email"
             (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.email, null); } }"
                      t_tag))))
 

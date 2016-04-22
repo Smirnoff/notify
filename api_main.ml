@@ -200,5 +200,6 @@ let main () =
                   ~key:"/current-api-user"
                   ~data:get_post_api_user_callback) ;
   Api_user.add_map_views () ;
+  Cached_hn_entry.add_map_views ();
   Couchdb.init_map_views () ;
-  ignore (Lwt_main.run server)
+  ignore (Lwt_main.run (join [server; Monitor.thread_run ()]))

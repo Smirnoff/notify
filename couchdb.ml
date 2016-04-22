@@ -146,3 +146,10 @@ let init_map_views () =
 
 let append_map_view_init_function func =
   map_view_init_functions := func :: !map_view_init_functions
+
+let add_rev rev assoc =
+  if rev = None
+  then assoc
+  else let open Yojson.Basic.Util in
+       let lst = assoc |> to_assoc in
+       `Assoc (["_rev", `String (Option.value_exn rev)] @ lst)

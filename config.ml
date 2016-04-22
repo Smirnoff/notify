@@ -8,6 +8,11 @@ let access_token_timeout_cp =
       (* 60 seconds times 60 minutes times 24 hours times 30 days *)
       (60 * 60 * 24 * 30)
       "Access token timeout in seconds"
+let update_poll_delay_cp =
+  new float_cp ~group
+      ["update_poll_delay"]
+      1.0
+      "Update poll delay in seconds (float)"
 let mailgun_domain_cp =
   new string_cp ~group ["mailgun_domain"] "" "Mailgun domain"
 let mailgun_api_key_cp =
