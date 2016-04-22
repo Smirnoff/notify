@@ -13,6 +13,11 @@ let update_poll_delay_cp =
       ["update_poll_delay"]
       1.0
       "Update poll delay in seconds (float)"
+let max_notify_attempt =
+  new int_cp ~group
+      ["max_notify_attempt"]
+      100
+      "Maximum number of attempts that will be made to notify a user of a change"
 let mailgun_domain_cp =
   new string_cp ~group ["mailgun_domain"] "" "Mailgun domain"
 let mailgun_api_key_cp =

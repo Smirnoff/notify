@@ -95,6 +95,10 @@ let put_t_func json_of_t item =
   let item = { item with id = Some id } in
   put_hnnotify id (json_of_t item)
 
+type change_key =
+  | ItemKey of int
+  | UserKey of string
+
 module Item = struct
   type item_t = int t
   type t = item_t
@@ -132,6 +136,8 @@ module Item = struct
        Lwt.return (None, item)
     | Some old_item ->
        Lwt.return (Some old_item, update old_item ~last_instance:json ~hash)
+
+  let change_key_of_key key = ItemKey key
 end
 
 module User = struct
@@ -157,8 +163,67 @@ module User = struct
     get_by_hacker_news_key_opt key_conv
                                Couchdb.view_results_to_string_alist_with_doc
                                by_hacker_news_key_view t_of_json
+
+  let change_key_of_key key = UserKey key
 end
 
 let add_map_views () =
   Item.add_map_views () ;
   User.add_map_views ()
+
+let change_key_of_json = function
+  | `String key -> UserKey key
+  | `Int    key -> ItemKey key
+  | _           -> failwith "bad change key"
+
+let json_of_change_key = function
+  | ItemKey key -> `Int key
+  | UserKey key -> `String key
+
+type change = {
+  id     : string;
+  key    : change_key;
+  fields : (string * (Yojson.Basic.json * Yojson.Basic.json)) list;
+}
+
+let change_of_json json =
+  let open Yojson.Basic.Util in
+  {
+    id     = member "id" json     |> to_string;
+    key    = member "key" json    |> change_key_of_json;
+    fields = member "fields" json |>
+               to_list |>
+               List.map
+                 ~f:(fun json ->
+                     let key = index 0 json |> to_string in
+                     let value = index 1 json in
+                     let before = index 0 value in
+                     let after = index 1 value in
+                     (key, (before, after)));
+  }
+
+let json_of_change { id; key; fields; } =
+  `Assoc [
+     "id", `String id;
+     "key", json_of_change_key key;
+     "fields", `List (List.map ~f:(fun (key, (before, after)) ->
+                                   `List [`String key;
+                                          `List [before; after]])
+                               fields);
+   ]
+
+let delta_with_key before after key =
+  let open Yojson.Basic.Util in
+  let before_assoc = to_assoc before in
+  let _ = to_assoc after in
+  {
+    id = Uuid.create () |> Uuid.to_string;
+    key = key;
+    fields = List.filter_map
+               before_assoc
+               ~f:(fun (key, before_val) ->
+                   let after_val = member key after in
+                   if after_val = before_val
+                   then None
+                   else Some (key, (before_val, after_val)))
+  }

@@ -52,12 +52,14 @@ type t = {
   items         : int list;
   users         : string list;
   topics        : string list;
+
+  changes       : Cached_hn_entry.change list;
 }
 
 let json_of_t { id; rev;
                 email; salt; password_hash; reset_code;
                 access_tokens;
-                items; users; topics; } =
+                items; users; topics; changes; } =
   Couchdb.add_rev rev
     (`Assoc [
         "_id",           if id = None
@@ -74,10 +76,15 @@ let json_of_t { id; rev;
         "items",         `List (List.map ~f:(fun x -> `Int x) items);
         "users",         `List (List.map ~f:(fun x -> `String x) users);
         "topics",        `List (List.map ~f:(fun x -> `String x) topics);
+        "changes",       `List (List.map ~f:Cached_hn_entry.json_of_change changes);
       ])
 
 let t_of_json json =
   let open Yojson.Basic.Util in
+  let to_list_default item =
+    if item = `Null
+    then []
+    else to_list item in
   {
     id            = member "_id" json           |> to_string_option;
     rev           = member "_rev" json          |> to_string_option;
@@ -93,6 +100,7 @@ let t_of_json json =
     items         = member "items" json  |> to_list |> List.map ~f:to_int;
     users         = member "users" json  |> to_list |> List.map ~f:to_string;
     topics        = member "topics" json |> to_list |> List.map ~f:to_string;
+    changes       = member "changes" json |> to_list_default |> List.map ~f:Cached_hn_entry.change_of_json;
   }
 
 let update item =
@@ -121,9 +129,15 @@ let make ~email
       items         = [];
       users         = [];
       topics        = [];
+      changes       = [];
     }
     ~password
     ()
+
+let notify user change =
+  { user with
+    changes = user.changes @ [change]
+  }
 
 let is_password_correct { salt; password_hash; _ } password =
   (Cryptohash_sha256.bytes (salt ^ password) |>
@@ -190,9 +204,13 @@ let add_map_views () =
 
 open Lwt
 
+let hnnotify_get = Couchdb.get Config.database_uri
 let hnnotify_view = Couchdb.get_raw_view_query Config.database_uri
 let api_user_view = hnnotify_view t_tag
 let by_email_view = api_user_view "by_email"
+
+let get_t id =
+  hnnotify_get id >|= t_of_json
 
 let get_t_by_email_opt email =
   match_lwt (by_email_view ~include_docs:(`Bool true)
@@ -214,7 +232,7 @@ let put_t item =
 
 (* api views of this object *)
 
-let api_json_of_t { id; rev; email; items; users; topics; _ } =
+let api_json_of_t { id; rev; email; items; users; topics; changes; _ } =
   `Assoc [
      "id",            if id = None
                       then `Null
@@ -226,6 +244,7 @@ let api_json_of_t { id; rev; email; items; users; topics; _ } =
      "items",         `List (List.map ~f:(fun x -> `Int x) items);
      "users",         `List (List.map ~f:(fun x -> `String x) users);
      "topics",        `List (List.map ~f:(fun x -> `String x) topics);
+     "changes",       `List (List.map ~f:Cached_hn_entry.json_of_change changes);
    ]
 
 let update_t_from_api_json existing json =
@@ -236,10 +255,11 @@ let update_t_from_api_json existing json =
   if email <> existing.email then failwith "email mismatch";
   {
     existing with
-    rev    = Some (member "rev" json |> to_string);
-    items  = member "items" json  |> to_list |> List.map ~f:to_int;
-    users  = member "users" json  |> to_list |> List.map ~f:to_string;
-    topics = member "topics" json |> to_list |> List.map ~f:to_string;
+    rev     = Some (member "rev" json |> to_string);
+    items   = member "items" json  |> to_list |> List.map ~f:to_int;
+    users   = member "users" json  |> to_list |> List.map ~f:to_string;
+    topics  = member "topics" json |> to_list |> List.map ~f:to_string;
+    changes = member "changes" json |> to_list |> List.map ~f:Cached_hn_entry.change_of_json;
   }
 
 let by_watched_items_view = api_user_view "watched_items"
