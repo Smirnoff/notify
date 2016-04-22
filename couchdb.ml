@@ -101,7 +101,7 @@ let put db_uri_getter id json =
           Yojson.Basic.from_string >>= fun json ->
         let open Yojson.Basic.Util in
         Lwt.return (member "ok" json |> to_bool ))
-  else failwith "Failed to put item"
+  else Lwt.return false
 
 let json_delete target json =
   match json with
