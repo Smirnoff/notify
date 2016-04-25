@@ -91,6 +91,7 @@ window.onload = function() {
       listening_socket.close();
       listening_socket = false;
     } else {
+      #('#connect_disconnect').val('Disconnect');
       listening_socket = new WebSocket(
         parameterized_streaming_url('/notifications'));
       listening_socket.onmessage = function(e) {
@@ -99,6 +100,7 @@ window.onload = function() {
         $('#delete_event').click(function() {
           listening_socket.send(JSON.stringify(
             {type: "remove_change", change_id: parsed.id}));
+          $('#events').val('');
         });
       };
     }
