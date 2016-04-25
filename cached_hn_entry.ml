@@ -202,8 +202,14 @@ let change_of_json json =
                      (key, (before, after)));
   }
 
+let change_json_type { key; _ } =
+  match key with
+  | ItemKey _ -> "item"
+  | UserKey _ -> "user"
+
 let json_of_change { id; key; fields; } =
   `Assoc [
+     "type", `String (change_json_type { id; key; fields; });
      "id", `String id;
      "key", json_of_change_key key;
      "fields", `List (List.map ~f:(fun (key, (before, after)) ->

@@ -13,6 +13,16 @@ let update_poll_delay_cp =
       ["update_poll_delay"]
       1.0
       "Update poll delay in seconds (float)"
+let ws_poll_delay_cp =
+  new float_cp ~group
+      ["ws_poll_delay"]
+      1.0
+      "websocket stream poll delay in seconds (float)"
+let ws_port_cp =
+  new int_cp ~group
+      ["ws_port"]
+      9000
+      "websocket stream port"
 let max_notify_attempt =
   new int_cp ~group
       ["max_notify_attempt"]

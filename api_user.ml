@@ -280,3 +280,12 @@ let user_ids_watching_user username =
     List.map ~f:(fun (key, value) ->
                  let open Yojson.Basic.Util in
                  to_string value)
+
+let remove_user_change user target_id =
+  {
+    user with
+    changes = user.changes |>
+                List.filter
+                  ~f:(fun change ->
+                      target_id <> change.Cached_hn_entry.id)
+  }
