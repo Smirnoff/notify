@@ -7,8 +7,11 @@ open Core.Std
 (* path -> callback *)
 let api_calls = String.Table.create ()
 
+let headers = Header.of_list ["Access-Control-Allow-Origin", "*"]
+
 let fail_with_bad_call () =
-  Server.respond_error ~status:`I_m_a_teapot
+  Server.respond_error ~headers
+                       ~status:`I_m_a_teapot
                        ~body:"No such call\n" ();;
 
 let rec api_user_by_email email =
@@ -39,6 +42,7 @@ let issue_reset_code_callback conn req body =
                             (Option.value_exn user.Api_user.reset_code))
                    ()) ;
      Server.respond_string
+       ~headers
        ~status:`OK
        ~body:(Yojson.Basic.to_string
                 (`Assoc ["message", `String "Reset code issued"]))
@@ -60,11 +64,13 @@ let apply_reset_code_callback conn req body =
                                                         ~password
                                                         ~reset_code:None ()) in
           Server.respond_string
+            ~headers
             ~status:`OK
             ~body:(Yojson.Basic.to_string
                      (`Assoc ["message", `String "Password reset"])) ())
        else
-         Server.respond_error ~status:`I_m_a_teapot
+         Server.respond_error ~headers
+                              ~status:`I_m_a_teapot
                               ~body:"{\"message\": \"Incorrect reset code\"}"
                               ())
   | _ -> fail_with_bad_call ();;
@@ -83,13 +89,15 @@ let login_callback conn req body =
          lwt success = Api_user.put_t new_user in
          if not success then failwith "failed to save user";
          Server.respond_string
+           ~headers
            ~status:`OK
            ~body:(Yojson.Basic.to_string
                     (`Assoc ["message", `String "Logged in successfully";
                              "access-token", `String new_token.Api_user.value]))
            ()
        else
-         Server.respond_error ~status:`I_m_a_teapot
+         Server.respond_error ~headers
+                              ~status:`I_m_a_teapot
                               ~body:"{\"message\": \"Incorrect password\"}"
                               ())
   | _ -> fail_with_bad_call ();;
@@ -115,9 +123,11 @@ let is_logged_in_callback conn req body =
   | `GET ->
      (match_lwt current_user conn req body with
       | None -> Server.respond_string
+                  ~headers
                   ~status:`OK
                   ~body:(Yojson.Basic.to_string (`Bool false)) ()
       | Some _ -> Server.respond_string
+                    ~headers
                     ~status:`OK
                     ~body:(Yojson.Basic.to_string (`Bool true)) ())
   | _ -> fail_with_bad_call ();;
@@ -127,6 +137,7 @@ let logout_callback conn req body =
   | `POST ->
      (match_lwt current_user_with_token conn req body with
       | None -> Server.respond_error
+                  ~headers
                   ~status:`I_m_a_teapot
                   ~body:(Yojson.Basic.to_string
                            (`Assoc ["message", `String "Not logged in"]))
@@ -135,6 +146,7 @@ let logout_callback conn req body =
          lwt success = Api_user.put_t (Api_user.logout user token) in
          if not success then failwith "failed to save user" ;
          Server.respond_string
+           ~headers
            ~status:`OK
            ~body: (Yojson.Basic.to_string
                      (`Assoc ["message", `String "logged out"]))
@@ -145,15 +157,18 @@ let get_post_api_user_callback conn req body =
   match Request.meth req with
   | `GET ->
      (match_lwt current_user conn req body with
-      | None -> Server.respond_error ~status:`I_m_a_teapot
+      | None -> Server.respond_error ~headers
+                                     ~status:`I_m_a_teapot
                                      ~body:"Not logged in\n" ()
       | Some user ->
          Server.respond_string
+           ~headers
            ~status:`OK
            ~body:(Yojson.Basic.to_string (Api_user.api_json_of_t user)) ())
   | `POST ->
      (match_lwt current_user conn req body with
-      | None -> Server.respond_error ~status:`I_m_a_teapot
+      | None -> Server.respond_error ~headers
+                                     ~status:`I_m_a_teapot
                                      ~body:"Not logged in\n" ()
       | Some user ->
          body |> Cohttp_lwt_body.to_string >>= fun body ->
@@ -161,7 +176,7 @@ let get_post_api_user_callback conn req body =
          let new_user = Api_user.update_t_from_api_json user json in
          lwt success = Api_user.put_t new_user in
          if not success then failwith "Failed to save user" ;
-         Server.respond_string ~status:`OK ~body:"true" ())
+         Server.respond_string ~headers ~status:`OK ~body:"true" ())
   | _ -> fail_with_bad_call ();;
 
 let server =

@@ -1,0 +1,37 @@
+<html>
+
+<head>
+<title>API Demo</title>
+</head>
+
+<body>
+
+<h1>API Demo</h1>
+
+<p>API base url: <input type="text" id="base_url"></p>
+<p>Streaming API base url: <input type="text" id="base_streaming_url"></p>
+
+<hr>
+
+<p>Email: <input type="text" id="email"></p>
+<p>Password: <input type="password" id="password"></p>
+<p>Reset code: <input type="text" id="reset_code"></p>
+
+<p><input type="button" id="login" value="Login"></p>
+<p><input type="button" id="logout" value="Logout"></p>
+<p><input type="button" id="issue_reset_code" value="Issue reset code"></p>
+<p><input type="button" id="reset_password" value="Reset password"></p>
+
+<p>Access token: <input type="text" id="access_token"></p>
+
+<hr>
+<textarea rows="8" cols="50" id="user_info"></textarea>
+<p><input type="button" id="get_user" value="Get"></p>
+<p><input type="button" id="set_user" value="Set"></p>
+
+<hr>
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+<script src="api_demo.js"></script>
+</body>
+</html>
