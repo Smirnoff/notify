@@ -85,24 +85,30 @@ window.onload = function() {
       });
   });
 
+  var current_id;
+
   $('#connect_disconnect').click(function() {
     if (listening_socket) {
       $('#connect_disconnect').val('Connect');
       listening_socket.close();
       listening_socket = false;
     } else {
-      #('#connect_disconnect').val('Disconnect');
+      $('#connect_disconnect').val('Disconnect');
       listening_socket = new WebSocket(
         parameterized_streaming_url('/notifications'));
       listening_socket.onmessage = function(e) {
         var parsed = JSON.parse(e.data);
+        current_id = parsed.id;
         $('#events').val(JSON.stringify(parsed, null, 2));
-        $('#delete_event').click(function() {
-          listening_socket.send(JSON.stringify(
-            {type: "remove_change", change_id: parsed.id}));
-          $('#events').val('');
-        });
       };
+    }
+  });
+
+  $('#delete_event').click(function() {
+    if (current_id) {
+      listening_socket.send(JSON.stringify(
+        {type: "remove_change", change_id: current_id}));
+      $('#events').val('');
     }
   });
 };
