@@ -179,7 +179,7 @@ let get_post_api_user_callback conn req body =
          Server.respond_string ~headers ~status:`OK ~body:"true" ())
   | _ -> fail_with_bad_call ();;
 
-let server =
+let server () =
   let callback conn req body =
     let uri = req |> Request.uri in
     match Hashtbl.find api_calls (Uri.path uri) with
@@ -217,4 +217,4 @@ let main () =
   Api_user.add_map_views () ;
   Cached_hn_entry.add_map_views ();
   Couchdb.init_map_views () ;
-  ignore (Lwt_main.run (join [server; Monitor.thread_run ()]))
+  ignore (Lwt_main.run (join [server (); Monitor.thread_run ()]))

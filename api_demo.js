@@ -4,6 +4,14 @@ function parameterized_url(method) {
     'access-token=' + encodeURIComponent($('#access_token').val());
 }
 
+function parameterized_streaming_url(method) {
+  return $('#base_streaming_url').val() + method +
+    '?email=' + encodeURIComponent($('#email').val()) + '&' +
+    'access-token=' + encodeURIComponent($('#access_token').val());
+}
+
+var listening_socket;
+
 window.onload = function() {
   $('#login').click(function() {
     $.post(
@@ -75,5 +83,24 @@ window.onload = function() {
         var parsed = JSON.parse(data);
         console.log("debugx " + data);
       });
+  });
+
+  $('#connect_disconnect').click(function() {
+    if (listening_socket) {
+      $('#connect_disconnect').val('Connect');
+      listening_socket.close();
+      listening_socket = false;
+    } else {
+      listening_socket = new WebSocket(
+        parameterized_streaming_url('/notifications'));
+      listening_socket.onmessage = function(e) {
+        var parsed = JSON.parse(e.data);
+        $('#events').val(JSON.stringify(parsed, null, 2));
+        $('#delete_event').click(function() {
+          listening_socket.send(JSON.stringify(
+            {type: "remove_change", change_id: parsed.id}));
+        });
+      };
+    }
   });
 };
