@@ -55,6 +55,7 @@ let stream_events user id req receive send =
              Config.streaming_ping_frequency_cp#get
         then (lwt () = send (Websocket_lwt.Frame.create
                                ~opcode:Websocket_lwt.Frame.Opcode.Ping ()) in
+              lwt _ = receive () in
               iter (Core.Time.now ()))
         else iter last_message) in
   iter (Core.Time.now ())
