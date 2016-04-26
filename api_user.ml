@@ -193,7 +193,7 @@ x = 0; idx < doc.users.length; idx++) { emit(doc.users[idx], doc._id); }}}"
        (Lwt_main.run
           (ensure_map_view
              "by_email"
-             (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.email, null); } }"
+             (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.email, doc._id); } }"
                       t_type_tag))))
 
 open Lwt
@@ -212,6 +212,15 @@ let get_t_by_email_opt email =
                            () >|=
                Couchdb.view_results_to_string_alist_with_doc) with
   | [_, _, json] -> Lwt.return (Some (t_of_json json))
+  | [_, _, _; _] -> failwith "Multiple of email"
+  | _            -> Lwt.return None
+
+let get_id_by_email_opt email =
+  match_lwt (by_email_view ~include_docs:(`Bool true)
+                           ~key:(`String email)
+                           () >|=
+               Couchdb.view_results_to_string_alist_with_doc) with
+  | [_, id, _] -> Lwt.return (Some (Yojson.Basic.Util.to_string id))
   | [_, _, _; _] -> failwith "Multiple of email"
   | _            -> Lwt.return None
 

@@ -88,6 +88,19 @@ let public_json_of_t = function
   | ItemChange change -> public_json_of_item_change change
   | ProfileChange change -> public_json_of_profile_change change
 
+open Lwt
+
+let hnnotify_get = Couchdb.get Config.database_uri
+let hnnotify_get_opt = Couchdb.get_opt Config.database_uri
+
+let get_t id =
+  hnnotify_get id >|= t_of_json
+
+let get_t_opt id =
+  match_lwt hnnotify_get_opt id with
+  | None -> Lwt.return None
+  | Some item -> Lwt.return (Some (t_of_json item))
+
 let put_hnnotify = Couchdb.put Config.database_uri
 
 let get_id = function
@@ -122,8 +135,6 @@ let () =
              "time_and_notified"
              (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.api_notified.length; idx++) { emit([doc.api_notified[idx], doc.time], null); } } }"
                       t_type_tag))))
-
-open Lwt
 
 let hnnotify_view = Couchdb.get_raw_view_query Config.database_uri
 let api_user_view = hnnotify_view t_type_tag
@@ -163,3 +174,13 @@ let make_change ~hn_id ~api_notified ?fields:(fields=`Assoc []) () =
          time = Core.Time.now ();
        }
   | _ -> failwith "Bad HN id"
+
+let list_delete item lst =
+  List.filter ~f:(fun x -> x <> item)
+              lst
+
+let remove_api_notified id = function
+  | ItemChange item ->
+     ItemChange { item with api_notified = list_delete id item.api_notified }
+  | ProfileChange item ->
+     ProfileChange { item with api_notified = list_delete id item.api_notified }
