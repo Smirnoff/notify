@@ -34,28 +34,37 @@ let remove_event user_email event_id =
                 else iter (count + 1)) in
      iter 0
 
-let rec ws_callback id req receive send =
+let stream_events user id req receive send =
+  let rec iter last_message =
+    (match_lwt Hn_event.t_s_by_notified_id (Option.value_exn user.Api_user.id) with
+     | next :: rest ->
+        let out_frame =
+          Websocket_lwt.Frame.create
+            ~content:(Yojson.Basic.to_string
+                        (Hn_event.public_json_of_t next)) () in
+        lwt () = send out_frame in
+        lwt in_frame = receive () in
+        let content = in_frame.Websocket_lwt.Frame.content in
+        (match Yojson.Basic.from_string content |> command_of_json with
+         | RemoveEvent id ->
+            remove_event user.Api_user.email id) >>= fun () ->
+        iter (Core.Time.now ())
+     | [] ->
+        Lwt_unix.sleep Config.ws_poll_delay_cp#get >>= fun () ->
+        if (Core.Time.diff (Core.Time.now ()) last_message |> Core.Span.to_sec) >
+             Config.streaming_ping_frequency_cp#get
+        then (lwt () = send (Websocket_lwt.Frame.create
+                               ~opcode:Websocket_lwt.Frame.Opcode.Ping ()) in
+              iter (Core.Time.now ()))
+        else iter last_message) in
+  iter (Core.Time.now ())
+
+let ws_callback id req receive send =
   let uri = req |> Request.uri in
   match Uri.path uri with
   | "/notifications" ->
      (match_lwt Api_main.current_user_with_token false req false with
-      | Some (user, token) ->
-         (match_lwt Hn_event.t_s_by_notified_id (Option.value_exn user.Api_user.id) with
-          | next :: rest ->
-             let out_frame =
-               Websocket_lwt.Frame.create
-                 ~content:(Yojson.Basic.to_string
-                             (Hn_event.public_json_of_t next)) () in
-             lwt () = send out_frame in
-             lwt in_frame = receive () in
-             let content = in_frame.Websocket_lwt.Frame.content in
-             (match Yojson.Basic.from_string content |> command_of_json with
-              | RemoveEvent id ->
-                 remove_event user.Api_user.email id) >>= fun () ->
-             ws_callback id req receive send
-          | [] ->
-             Lwt_unix.sleep Config.ws_poll_delay_cp#get >>= fun () ->
-             ws_callback id req receive send)
+      | Some (user, token) -> stream_events user id req receive send
       | _ -> Lwt.return ())
   | _ -> Lwt.return ()
 
