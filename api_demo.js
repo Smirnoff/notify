@@ -87,6 +87,14 @@ window.onload = function() {
 
   var current_id;
 
+  var delete_func = function() {
+    if (current_id) {
+      listening_socket.send(JSON.stringify(
+        {type: "remove_event", event_id: current_id}));
+      $('#events').val('');
+    }
+  };
+
   $('#connect_disconnect').click(function() {
     if (listening_socket) {
       $('#connect_disconnect').val('Connect');
@@ -100,15 +108,12 @@ window.onload = function() {
         var parsed = JSON.parse(e.data);
         current_id = parsed._id;
         $('#events').val(JSON.stringify(parsed, null, 2));
+        if ($('#autodelete').is(":checked")) {
+          setTimeout(delete_func, 3000);
+        }
       };
     }
   });
 
-  $('#delete_event').click(function() {
-    if (current_id) {
-      listening_socket.send(JSON.stringify(
-        {type: "remove_event", event_id: current_id}));
-      $('#events').val('');
-    }
-  });
+  $('#delete_event').click(delete_func);
 };
