@@ -38,7 +38,7 @@ let couchdb_database_name_cp =
   new string_cp ~group ["couchdb_database_name"] "hnnotify" "Couchdb Database Name"
 
 let database_url () =
-  couchdb_server_url_cp#get ^ "/" ^ couchdb_database_name_cp#get
+  couchdb_server_url_cp#get ^ "/" ^ (Uri.pct_encode couchdb_database_name_cp#get)
 
 open Lwt
 open Cohttp

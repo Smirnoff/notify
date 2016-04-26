@@ -4,9 +4,24 @@ open Cohttp_lwt_unix
 
 open Core.Std
 
+let add_optional_field name field field_to_json json =
+  let open Yojson.Basic.Util in
+  if field = None
+  then json
+  else let assoc = to_assoc json in
+       `Assoc ([name, Option.value_exn field |> field_to_json] @ assoc)
+
+let add_id value =
+  add_optional_field "_id" value (fun x -> `String x)
+let add_rev value =
+  add_optional_field "_rev" value (fun x -> `String x)
+
+let add_id_rev ~id ~rev json =
+  add_id id json |> add_rev rev
+
 let object_uri db_uri_getter id =
   let db_uri = db_uri_getter () in
-  Uri.of_string ((Uri.to_string db_uri) ^ "/" ^ id)
+  Uri.of_string ((Uri.to_string db_uri) ^ "/" ^ (Uri.pct_encode id))
 
 let get_opt db_uri_getter id =
   Client.get (object_uri db_uri_getter id) >>= fun (resp, body) ->
@@ -22,8 +37,8 @@ let get db_uri_getter id =
     | Some value -> Lwt.return value
 
 let view_uri db_uri_getter id_suffix view query =
-  let id = "/_design/" ^ id_suffix in
-  let full_id = id ^ "/_view/" ^ view in
+  let id = "/_design/" ^ (Uri.pct_encode id_suffix) in
+  let full_id = id ^ "/_view/" ^ (Uri.pct_encode view) in
   let db_uri = db_uri_getter () in
   Uri.make ~scheme:(Option.value_exn (Uri.scheme db_uri))
            ~host:(Option.value_exn (Uri.host db_uri))
@@ -146,10 +161,3 @@ let init_map_views () =
 
 let append_map_view_init_function func =
   map_view_init_functions := func :: !map_view_init_functions
-
-let add_rev rev assoc =
-  if rev = None
-  then assoc
-  else let open Yojson.Basic.Util in
-       let lst = assoc |> to_assoc in
-       `Assoc (["_rev", `String (Option.value_exn rev)] @ lst)
