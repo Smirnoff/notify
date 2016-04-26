@@ -108,7 +108,7 @@ let change_event ~hn_id ~api_notified before after =
   let open Yojson.Basic.Util in
   let before_assoc = to_assoc before in
   let _ = to_assoc after in
-  Event.make_change
+  Hn_event.make_change
     ~hn_id
     ~api_notified
     ~fields:(`Assoc (List.filter_map

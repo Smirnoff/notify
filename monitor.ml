@@ -4,7 +4,7 @@ open Lwt
 let notify_watchers watchers hn_id old_entry json =
   let old_json = old_entry.Cached_hn_structure.last_instance in
   let event = Cached_hn_structure.change_event ~hn_id ~api_notified:watchers old_json json in
-  lwt success = Event.put_t event in
+  lwt success = Hn_event.put_t event in
   if success
   then Lwt.return ()
   else Lwt_io.printf "Failed to notify watchers\n"
