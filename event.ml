@@ -92,18 +92,19 @@ let public_json_of_t = function
 
 let ensure_map_view = Couchdb.ensure_map_view Config.database_uri t_type_tag
 
-let () = Couchdb.append_map_view_init_function
-           (fun () ->
-            (* Ok, so
-               we're going to add a way to search for all event.t's that
-               are aimed at a particular user
-             *)
-            ignore
-              (Lwt_main.run
-                 (ensure_map_view
-                    "time_and_notified"
-                    (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.api_notified.length; idx++) { emit([doc.api_notified[idx], doc.time], null); } } }"
-                             t_type_tag))))
+let () =
+  Couchdb.append_map_view_init_function
+    (fun () ->
+     (* Ok, so
+        we're going to add a way to search for all event.t's that
+        are aimed at a particular user
+      *)
+     ignore
+       (Lwt_main.run
+          (ensure_map_view
+             "time_and_notified"
+             (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.api_notified.length; idx++) { emit([doc.api_notified[idx], doc.time], null); } } }"
+                      t_type_tag))))
 
 open Lwt
 
