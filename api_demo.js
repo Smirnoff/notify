@@ -98,7 +98,7 @@ window.onload = function() {
         parameterized_streaming_url('/notifications'));
       listening_socket.onmessage = function(e) {
         var parsed = JSON.parse(e.data);
-        current_id = parsed.id;
+        current_id = parsed._id;
         $('#events').val(JSON.stringify(parsed, null, 2));
       };
     }
@@ -107,7 +107,7 @@ window.onload = function() {
   $('#delete_event').click(function() {
     if (current_id) {
       listening_socket.send(JSON.stringify(
-        {type: "remove_change", change_id: current_id}));
+        {type: "remove_event", event_id: current_id}));
       $('#events').val('');
     }
   });

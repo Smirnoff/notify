@@ -13,6 +13,9 @@ type 'id_type change = {
 
 let json_of_change type_tag id_to_json { id; rev; hn_id; api_notified; fields; time; } =
   `Assoc [
+     "_id",           if id = None
+                      then `Null
+                      else `String (Option.value_exn id);
      "type",         `String t_type_tag;
      "sub_type",     `String type_tag;
      "hn_id",        id_to_json hn_id;
@@ -24,6 +27,9 @@ let json_of_change type_tag id_to_json { id; rev; hn_id; api_notified; fields; t
 
 let public_json_of_change type_tag id_to_json { id; rev; hn_id; api_notified; fields; time; } =
   `Assoc [
+     "_id",           if id = None
+                      then `Null
+                      else `String (Option.value_exn id);
      "type",         `String t_type_tag;
      "sub_type",     `String type_tag;
      "hn_id",        id_to_json hn_id;
@@ -35,8 +41,8 @@ let public_json_of_change type_tag id_to_json { id; rev; hn_id; api_notified; fi
 let change_of_json json_to_id json =
   let open Yojson.Basic.Util in
   {
-    id           = member "id" json           |> to_string_option;
-    rev          = member "id" json           |> to_string_option;
+    id           = member "_id" json           |> to_string_option;
+    rev          = member "_rev" json           |> to_string_option;
     hn_id        = member "hn_id" json        |> json_to_id;
     api_notified = member "api_notified" json |> to_list |> List.map ~f:to_string;
     fields       = member "fields" json;

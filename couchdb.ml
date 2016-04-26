@@ -21,7 +21,7 @@ let add_id_rev ~id ~rev json =
 
 let object_uri db_uri_getter id =
   let db_uri = db_uri_getter () in
-  Uri.of_string ((Uri.to_string db_uri) ^ "/" ^ (Uri.pct_encode id))
+  Uri.of_string ((Uri.to_string db_uri) ^ "/" ^ id)
 
 let get_opt db_uri_getter id =
   Client.get (object_uri db_uri_getter id) >>= fun (resp, body) ->
@@ -37,8 +37,8 @@ let get db_uri_getter id =
     | Some value -> Lwt.return value
 
 let view_uri db_uri_getter id_suffix view query =
-  let id = "/_design/" ^ (Uri.pct_encode id_suffix) in
-  let full_id = id ^ "/_view/" ^ (Uri.pct_encode view) in
+  let id = "/_design/" ^ id_suffix in
+  let full_id = id ^ "/_view/" ^ view in
   let db_uri = db_uri_getter () in
   Uri.make ~scheme:(Option.value_exn (Uri.scheme db_uri))
            ~host:(Option.value_exn (Uri.host db_uri))

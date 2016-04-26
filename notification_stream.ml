@@ -45,7 +45,7 @@ let rec ws_callback id req receive send =
              let out_frame =
                Websocket_lwt.Frame.create
                  ~content:(Yojson.Basic.to_string
-                             (Hn_event.json_of_t next)) () in
+                             (Hn_event.public_json_of_t next)) () in
              lwt () = send out_frame in
              lwt in_frame = receive () in
              let content = in_frame.Websocket_lwt.Frame.content in

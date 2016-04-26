@@ -179,15 +179,13 @@ let () =
       (Lwt_main.run
          (ensure_map_view
             "watched_items"
-            (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (id
-x = 0; idx < doc.items.length; idx++) { emit(doc.items[idx], doc._id); }}}"
+            (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.items.length; idx++) { emit(doc.items[idx], doc._id); }}}"
                      t_type_tag))) ;
     ignore
       (Lwt_main.run
          (ensure_map_view
             "watched_users"
-            (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (id
-x = 0; idx < doc.users.length; idx++) { emit(doc.users[idx], doc._id); }}}"
+            (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.users.length; idx++) { emit(doc.users[idx], doc._id); }}}"
                      t_type_tag))) ;
      ignore
        (Lwt_main.run
