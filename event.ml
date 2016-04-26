@@ -88,6 +88,23 @@ let public_json_of_t = function
   | ItemChange change -> public_json_of_item_change change
   | ProfileChange change -> public_json_of_profile_change change
 
+let put_hnnotify = Couchdb.put Config.database_uri
+
+let get_id = function
+  | ItemChange { id; _ } -> id
+  | ProfileChange { id; _ } -> id
+
+let update_with_id id = function
+  | ItemChange obj -> ItemChange { obj with id = Some id }
+  | ProfileChange obj -> ProfileChange { obj with id = Some id }
+
+let put_t item =
+  let id = if (get_id item) = None
+           then (Uuid.create () |> Uuid.to_string)
+           else Option.value_exn (get_id item) in
+  let item = update_with_id id item in
+  put_hnnotify id (json_of_t item)
+
 (* views *)
 
 let ensure_map_view = Couchdb.ensure_map_view Config.database_uri t_type_tag
