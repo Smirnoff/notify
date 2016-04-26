@@ -124,3 +124,25 @@ let t_s_by_notified_id id =
     () >|=
     Couchdb.view_results_to_X_alist_with_doc (fun x -> x) >|=
     List.map ~f:(fun (_, _, doc) -> t_of_json doc)
+
+let make_change ~hn_id ~api_notified ?fields:(fields=`Assoc []) () =
+  match hn_id with
+  | `String value ->
+     ProfileChange {
+         id = None;
+         rev = None;
+         hn_id = value;
+         api_notified = api_notified;
+         fields = fields;
+         time = Core.Time.now ();
+       }
+  | `Int value ->
+     ItemChange {
+         id = None;
+         rev = None;
+         hn_id = value;
+         api_notified = api_notified;
+         fields = fields;
+         time = Core.Time.now ();
+       }
+  | _ -> failwith "Bad HN id"
