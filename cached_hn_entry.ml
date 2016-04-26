@@ -146,8 +146,10 @@ module User = struct
 
   let key_conv str = `String str
 
+  let t_tag = "cached_hn_user"
+
   let t_of_json = general_t_of_json Yojson.Basic.Util.to_string
-  let json_of_t = general_json_of_t key_conv
+  let json_of_t = general_json_of_t key_conv t_tag
 
   let t_tag = "cached_hn_user"
 
@@ -163,6 +165,20 @@ module User = struct
     get_by_hacker_news_key_opt key_conv
                                Couchdb.view_results_to_string_alist_with_doc
                                by_hacker_news_key_view t_of_json
+
+  let get_json key =
+    User.lwt_get_by_id key >|= User.json_of_t
+
+  let put_t = put_t_func json_of_t
+
+  let process_new_json key json =
+    let hash = Hn_misc.hash_json json in
+    match_lwt get_t_by_hacker_news_key_opt key with
+    | None ->
+       let item = make ~hacker_news_key:key ~last_instance:json ~hash in
+       Lwt.return (None, item)
+    | Some old_item ->
+       Lwt.return (Some old_item, update old_item ~last_instance:json ~hash)
 
   let change_key_of_key key = UserKey key
 end

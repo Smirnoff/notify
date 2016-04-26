@@ -1,3 +1,4 @@
+open Lwt
 open Core.Std
 
 type t = {
@@ -32,3 +33,20 @@ let t_of_json json =
     about     = member "about"     json |> to_string;
     submitted = member "submitted" json |> to_list |> List.map ~f:to_int;
   }
+
+let id = function
+  | { id; _ } -> id
+
+let user_base_url = Hn_misc.base_versioned_url ^ "/user"
+
+let uri_from_id username =
+  Uri.of_string (Format.sprintf "%s/%s.json" user_base_url username)
+
+let uri item = id item |> uri_from_id
+
+let lwt_get_by_id id =
+  uri_from_id id |> Hn_misc.lwt_get_json_uri >|= fun json ->
+  try
+    t_of_json json
+  with
+    _ -> failwith (sprintf "Failed to convert user #%s" id)
