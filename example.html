@@ -1,0 +1,138 @@
+<html>
+
+<head>
+
+<style>
+  #outer_notifications {
+    width: 600px;
+    border: 1px solid black;
+  }
+  #notifications {
+    width: 600px;
+    height: 480px;
+    overflow-y: scroll;
+  }
+  .notification {
+    padding: 10px;
+    margin: 10px;
+  }
+  .ui-widget-header {
+    padding: 5px;
+    text-align: center;
+  }
+  #watched_items {
+    width: 300px;
+    height: 50%;
+    padding: 10px;
+    margin: 10px;
+  overflow-y: scroll;
+  }
+  #watched_items ul {
+    height: 50%;
+    overflow-y: scroll;
+  }
+  #watched_users {
+    width: 300px;
+    height: 50%;
+    padding: 10px;
+    margin: 10px;
+  }
+  #watched_users ul {
+    overflow-y: scroll;
+  }
+  #account_info {
+    padding: 10px;
+    margin: 10px;
+    display: block;
+  }
+  #watched_items .ui-icon {
+    display: inline-block;
+  }
+  #watched_users .ui-icon {
+    display: inline-block;
+  }
+
+  #notifications pre {
+    white-space: pre-wrap;       /* CSS 3 */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+    white-space: -pre-wrap;      /* Opera 4-6 */
+    white-space: -o-pre-wrap;    /* Opera 7 */
+    word-wrap: break-word; 
+  }
+</style>
+
+</head>
+
+<body>
+
+<div id="account_info" class="ui-widget-content ui-corner-all">
+  <h2 class="ui-widget-header ui-corner-all">Account Info</h2>
+  <div id="login_info">
+    <p><input id="email" type="textbox" placeholder="Email address"> <input type="button" id="issue_reset_code" value="Email login code"></p>
+    <p id="issue_message"></p>
+    <hr>
+    <p><input id="login_code" type="textbox" placeholder="Login Code"> <input id="apply_reset_code" type="button" value="Login"></p>
+    <p id="reset_login_message"><p>
+  </div>
+  <div id="logout_info" style="display: none;">
+    <p id="logged_in_message"></p>
+    <p><input id="logout" type="button" value="Logout"></p>
+  </div>
+</div>
+
+<div id="notification_template">
+  <div class="notification ui-widget-content ui-corner-all" style="display: none;">
+    <h2 class="ui-widget-header ui-corner-all"></h2>
+    <div class="notification_body">
+    </div>
+  </div>
+</div>
+
+<div id="outer_notifications">
+  <div id="notifications">
+    <div class="notification ui-widget-content ui-corner-all" style="">
+      <h2 class="ui-widget-header ui-corner-all">foo</h2>
+      <div class="notification_body">
+        <p>bar baz</p>
+      </div>
+    </div>
+    <div class="notification ui-widget-content ui-corner-all" style="display: none;;">
+      <h2 class="ui-widget-header ui-corner-all">zip</h2>
+      <p>blah blah blah</p>
+    </div>
+    <div class="notification ui-widget-content ui-corner-all" style="display: block;">
+      <h2 class="ui-widget-header ui-corner-all">go away</h2>
+      <p>sup dudes</p>
+    </div>
+</div>
+</div>
+
+<ul id="item_template" style="display: none;">
+  <li><span class="sample_item_num"></span> <span class="ui-icon ui-icon-trash"></span></li>
+</ul>
+
+<div id="watched_items" class="ui-widget-content ui-corner-all">
+  <h2 class="ui-widget-header ui-corner-all">Watched Items</h2>
+  <ul></ul>
+  <input type="textbox" id="new_item">
+  <input type="button" id="add_item" value="Add">
+</div>
+
+<ul id="user_template" style="display: none;">
+  <li><span class="sample_username"></span> <span class="ui-icon ui-icon-trash"></span></li>
+</ul>
+
+<div id="watched_users" class="ui-widget-content ui-corner-all">
+  <h2 class="ui-widget-header ui-corner-all">Watched Users</h2>
+  <ul></ul>
+  <input type="textbox" id="new_user">
+  <input type="button" id="add_user" value="Add">
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+<script src="example.js"></script>
+</body>
+
+</html>
