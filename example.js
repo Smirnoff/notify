@@ -147,7 +147,9 @@ function start_stream() {
     var parsed = JSON.parse(e.data);
     current_id = parsed._id;
     setTimeout(function() {
-      listening_socket.send(JSON.stringify({type: "remove_event", event_id: current_id}));
+      if (listening_socket) {
+        listening_socket.send(JSON.stringify({type: "remove_event", event_id: current_id}));
+      }
     }, delete_timeout);
 
     handle_stream_event(parsed);
