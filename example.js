@@ -11,8 +11,8 @@ var delete_timeout = 3000;
 var target_password;
 var access_token;
 
-var api_base_url = "https://bcaine.com/hnnotify";
-var streaming_base_url = "wss://bcaine.com/hnnotify";
+var api_base_url = "https://notify.uz/hnnotify";
+var streaming_base_url = "wss://notify.uz/hnnotify";
 
 var debugging_mode = false;
 var last_event;
