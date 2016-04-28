@@ -58,13 +58,25 @@ let () =
           (ensure_map_view
              "by_hacker_news_key"
              (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.hacker_news_key, null); }}"
-                      t_type_tag))))
+                      t_type_tag))) ;
+     ignore
+       (Lwt_main.run
+          (ensure_map_view
+             "all_of_type"
+             (Couchdb.all_of_type_view_func t_type_tag))))
 
 open Lwt
 
 let hnnotify_view = Couchdb.get_raw_view_query Config.database_uri
 let structure_view = hnnotify_view t_type_tag
 let by_hacker_news_key_view = structure_view "by_hacker_news_key"
+
+let all_by_type = structure_view "all_of_type"
+
+let all_t_s () =
+  all_by_type ~include_docs:(`Bool true) () >|=
+    Couchdb.view_results_to_string_alist_with_doc >|=
+    List.map ~f:(fun (_, _, doc) -> t_of_json doc)
 
 let get_by_hacker_news_key_opt key =
   match_lwt (by_hacker_news_key_view

@@ -179,7 +179,7 @@ function add_item(item) {
         parameterized_url('/current-api-user'),
         JSON.stringify(parsed),
         function(data) {
-          console.log("Added user");
+          console.log("Added item");
         });
     });
 }

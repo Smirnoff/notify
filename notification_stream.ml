@@ -28,7 +28,7 @@ let remove_event user_email event_id =
                        Lwt.return ()
              | Some event ->
                 let event = Hn_event.remove_api_notified user_id event in
-                lwt success = Hn_event.put_t event in
+                lwt success = Hn_event.put_t_maybe_delete event in
                 if success
                 then Lwt.return ()
                 else iter (count + 1)) in

@@ -192,7 +192,12 @@ let () =
           (ensure_map_view
              "by_email"
              (sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc.email, doc._id); } }"
-                      t_type_tag))))
+                      t_type_tag))) ;
+     ignore
+       (Lwt_main.run
+          (ensure_map_view
+             "all_of_type"
+             (Couchdb.all_of_type_view_func t_type_tag))))
 
 open Lwt
 
@@ -200,6 +205,13 @@ let hnnotify_get = Couchdb.get Config.database_uri
 let hnnotify_view = Couchdb.get_raw_view_query Config.database_uri
 let api_user_view = hnnotify_view t_type_tag
 let by_email_view = api_user_view "by_email"
+
+let all_by_type = api_user_view "all_of_type"
+
+let all_t_s () =
+  all_by_type ~include_docs:(`Bool true) () >|=
+    Couchdb.view_results_to_string_alist_with_doc >|=
+    List.map ~f:(fun (_, _, doc) -> t_of_json doc)
 
 let get_t id =
   hnnotify_get id >|= t_of_json

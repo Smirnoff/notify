@@ -36,6 +36,19 @@ let get db_uri_getter id =
     | None       -> failwith "Couldn't get item"
     | Some value -> Lwt.return value
 
+let delete db_uri_getter id =
+  match_lwt get_opt db_uri_getter id with
+  | None -> Lwt.return false (* doc doesn't exist *)
+  | Some existing ->
+     let open Yojson.Basic.Util in
+     let add_query_param' params uri = Uri.add_query_param' uri params in
+     let uri = object_uri db_uri_getter id |>
+                 add_query_param' ("rev", member "_rev" existing |> to_string) in
+     lwt (resp, body) = Client.delete uri in
+     if Response.status resp = `OK
+     then Lwt.return true
+     else Lwt.return false
+
 let view_uri db_uri_getter id_suffix view query =
   let id = "/_design/" ^ id_suffix in
   let full_id = id ^ "/_view/" ^ view in
@@ -161,3 +174,10 @@ let init_map_views () =
 
 let append_map_view_init_function func =
   map_view_init_functions := func :: !map_view_init_functions
+
+
+(* misc utils *)
+
+let all_of_type_view_func t_type_tag =
+  sprintf "function(doc) { if (doc.type == \"%s\") { emit(doc._id, null); } }"
+          t_type_tag

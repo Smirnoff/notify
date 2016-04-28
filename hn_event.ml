@@ -108,6 +108,7 @@ let get_t_opt id =
   | Some item -> Lwt.return (Some (t_of_json item))
 
 let put_hnnotify = Couchdb.put Config.database_uri
+let delete_hnnotify = Couchdb.delete Config.database_uri
 
 let get_id = function
   | ItemChange { id; _ } -> id
@@ -123,6 +124,18 @@ let put_t item =
            else Option.value_exn (get_id item) in
   let item = update_with_id id item in
   put_hnnotify id (json_of_t item)
+
+let api_notified = function
+  | ItemChange { api_notified; _ } -> api_notified
+  | ProfileChange { api_notified; _ } -> api_notified
+
+let put_t_maybe_delete item =
+  match get_id item with
+  | None -> put_t item
+  | Some id ->
+     if api_notified item = []
+     then delete_hnnotify id
+     else put_t item
 
 (* views *)
 
@@ -140,11 +153,16 @@ let () =
           (ensure_map_view
              "time_and_notified"
              (sprintf "function(doc) { if (doc.type == \"%s\") { var idx; for (idx = 0; idx < doc.api_notified.length; idx++) { emit([doc.api_notified[idx], doc.time], null); } } }"
-                      t_type_tag))))
+                      t_type_tag))) ;
+     ignore
+       (Lwt_main.run
+          (ensure_map_view
+             "all_of_type"
+             (Couchdb.all_of_type_view_func t_type_tag))))
 
 let hnnotify_view = Couchdb.get_raw_view_query Config.database_uri
-let api_user_view = hnnotify_view t_type_tag
-let by_notified_events = api_user_view "time_and_notified"
+let hn_event_view = hnnotify_view t_type_tag
+let by_notified_events = hn_event_view "time_and_notified"
 
 let t_s_by_notified_id id =
   by_notified_events
@@ -157,6 +175,13 @@ let t_s_by_notified_id id =
                             Misc_util.time_to_int)])
     () >|=
     Couchdb.view_results_to_X_alist_with_doc (fun x -> x) >|=
+    List.map ~f:(fun (_, _, doc) -> t_of_json doc)
+
+let all_by_type = hn_event_view "all_of_type"
+
+let all_t_s () =
+  all_by_type ~include_docs:(`Bool true) () >|=
+    Couchdb.view_results_to_string_alist_with_doc >|=
     List.map ~f:(fun (_, _, doc) -> t_of_json doc)
 
 let make_change ~hn_id ~api_notified ?fields:(fields=`Assoc []) () =
