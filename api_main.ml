@@ -14,6 +14,30 @@ let fail_with_bad_call () =
                        ~status:`I_m_a_teapot
                        ~body:"No such call\n" ()
 
+let loopback_ips =
+  [Option.value_exn (Ipaddr.of_string "127.0.0.1");
+   Option.value_exn (Ipaddr.of_string "::1")]
+
+let generic_maybe_ensure_localhost reject func conn req body =
+  if not Config.reject_outside_connections_cp#get
+  then func conn req body
+  else let (server_conn, _) = conn in
+       let endp = Conduit_lwt_unix.endp_of_flow server_conn in
+       (match endp with
+        | `TCP (ip, _) ->
+           if (List.find ~f:(fun other -> 0 = Ipaddr.compare other ip)
+                         loopback_ips) = None
+           then reject ()
+           else func conn req body
+        (* if it's not a TCP connection, let it in regardless *)
+        | _ -> func conn req body)
+
+let maybe_ensure_localhost =
+  generic_maybe_ensure_localhost
+    (fun () ->
+     (printf "debug refusing connection from outside ip.\n%!" ;
+      Server.respond_string ~headers ~status:`Forbidden ~body:"" ()))
+
 let rec api_user_by_email email =
   match_lwt Api_user.get_t_by_email_opt email with
   | Some user -> Lwt.return user
@@ -193,27 +217,27 @@ let main_init () =
   ignore(
       Hashtbl.add api_calls
                   ~key:"/issue-reset-code"
-                  ~data:issue_reset_code_callback) ;
+                  ~data:(maybe_ensure_localhost issue_reset_code_callback)) ;
   ignore(
       Hashtbl.add api_calls
                   ~key:"/apply-reset-code"
-                  ~data:apply_reset_code_callback) ;
+                  ~data:(maybe_ensure_localhost apply_reset_code_callback)) ;
   ignore(
       Hashtbl.add api_calls
                   ~key:"/login"
-                  ~data:login_callback) ;
+                  ~data:(maybe_ensure_localhost login_callback)) ;
   ignore(
       Hashtbl.add api_calls
                   ~key:"/is-logged-in"
-                  ~data:is_logged_in_callback) ;
+                  ~data:(maybe_ensure_localhost is_logged_in_callback)) ;
   ignore(
       Hashtbl.add api_calls
                   ~key:"/logout"
-                  ~data:logout_callback) ;
+                  ~data:(maybe_ensure_localhost logout_callback)) ;
   ignore(
       Hashtbl.add api_calls
                   ~key:"/current-api-user"
-                  ~data:get_post_api_user_callback) ;
+                  ~data:(maybe_ensure_localhost get_post_api_user_callback)) ;
   Couchdb.init_map_views ()
 
 let main () =

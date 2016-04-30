@@ -40,6 +40,9 @@ let couchdb_database_name_cp =
 let streaming_ping_frequency_cp =
   new float_cp ~group ["streaming_ping_frequency"] 10. "Frequency we send out ping frames for websocket"
 
+let reject_outside_connections_cp =
+  new bool_cp ~group ["reject_outside_connections"] true "If true, both the streaming API and the HTTP API reject non localhost connections"
+
 let database_url () =
   couchdb_server_url_cp#get ^ "/" ^ (Uri.pct_encode couchdb_database_name_cp#get)
 
