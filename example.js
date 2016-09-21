@@ -11,6 +11,9 @@ var delete_timeout = 3000;
 var target_password;
 var access_token;
 
+// var api_base_url = "http://localhost:8000";
+// var streaming_base_url = "ws://localhost:9000";
+
 var api_base_url = "https://notify.uz/hnnotify";
 var streaming_base_url = "wss://notify.uz/hnnotify";
 
