@@ -238,6 +238,7 @@ let main_init () =
       Hashtbl.add api_calls
                   ~key:"/current-api-user"
                   ~data:(maybe_ensure_localhost get_post_api_user_callback)) ;
+  Lwt_main.run(Couchdb.ensure_db Config.database_uri ()) ;
   Couchdb.init_map_views ()
 
 let main () =

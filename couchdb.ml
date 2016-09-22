@@ -121,6 +121,18 @@ let get_raw_view_query db_uri_getter id_suffix view =
     (view_query_args ~key ~include_docs
                      ~startkey ~endkey ~descending ())
 
+let db_exists db_uri_getter () =
+  Client.get (db_uri_getter ()) >|= (fun (resp, body) -> Response.status resp <> `Not_found)
+
+let ensure_db db_uri_getter () =
+  lwt exists = db_exists db_uri_getter () in
+  if exists
+  then Lwt.return ()
+  else lwt (resp, body) = Client.put (db_uri_getter ()) in
+    if Response.status resp <> `Created
+    then failwith "Failed to create database"
+    else Lwt.return ()
+
 let put db_uri_getter id json =
   Client.put ~body:(Yojson.Basic.to_string json |> Cohttp_lwt_body.of_string)
              (object_uri db_uri_getter id) >>= fun (resp, body) ->
