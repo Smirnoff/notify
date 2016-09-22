@@ -11,7 +11,7 @@ exec scsh -dm -m update-hooks -e main -s $0 "$@" # -*- mode: Scheme; -*-
   (begin
 
 (define +ssh-login+ "brian@notify.uz")
-(define +target-raw-git+ "/home/brian/projects/hacker-news-notify-api")
+(define +target-raw-git+ "/home/brian/projects/hacker-news-notify-api.git")
 (define +hooks-dir+ (string-append +target-raw-git+ "/hooks"))
 
 (define +hook-files+
