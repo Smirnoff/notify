@@ -206,6 +206,7 @@ let get_post_api_user_callback conn req body =
 let server () =
   let callback conn req body =
     let uri = req |> Request.uri in
+    printf "Handling URL: %s\n%!" (Uri.to_string uri) ;
     match Hashtbl.find api_calls (Uri.path uri) with
     | None      -> fail_with_bad_call ()
     | Some func -> func conn req body in
