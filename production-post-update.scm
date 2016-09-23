@@ -113,7 +113,6 @@ exec scsh -dm -m production-post-update -e main -s $0 "$@" # -*- mode: Scheme; -
                           -v ,(string-append +couchdb-data-dir+
                                              ":/usr/local/var/lib/couchdb:rw")
                           -d
-                          -p 5984:5984
                           couchdb))
 
          (rec-copy-to-target +config-source+ temp-dir)
@@ -128,8 +127,6 @@ exec scsh -dm -m production-post-update -e main -s $0 "$@" # -*- mode: Scheme; -
                           --net ,+network-name+
                           --restart always
                           -d
-                          -p 8000:8000
-                          -p 9000:9000
                           ,+build-name+))
          #f)))))
 
