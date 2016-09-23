@@ -6,7 +6,9 @@ RUN apt-get -y update && apt-get -y install libssl-dev
 # installing os
 USER opam
 RUN eval `opam config env` && \
-  opam install -y lwt ssl cohttp core
+  opam install -y lwt ssl cohttp
+RUN eval `opam config env` && \
+  opam install -y core
 RUN eval `opam config env` && \
   opam install -y config-file cryptohash yojson websocket
 
