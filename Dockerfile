@@ -15,12 +15,13 @@ RUN eval `opam config env` && \
 # grabbing source
 USER root
 
-COPY . /home/opam/src
+COPY *.ml _tags /home/opam/src/
 RUN chown -R opam:opam /home/opam/src
 
 USER opam
 WORKDIR /home/opam/src
-RUN ./clean.sh
 RUN eval `opam config env` && ocamlbuild -use-ocamlfind run_all.native
+VOLUME /home/opam/config
+RUN ln -s /home/opam/config/config /home/opam/src/config
 
 CMD ./run_all.native

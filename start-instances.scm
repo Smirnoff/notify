@@ -11,6 +11,8 @@ exec scsh -ll dope-deploy-special-forms.scm -ll dope-deploy-temp-dir.scm -ll dop
 (define +couchdb-data-dir+
   (string-append +data-base+ "/" +couchdb-instance-name+ "/"))
 
+(define +config-source+ (string-append (getenv "HOME") "/config/" +instance-name+))
+
 (define (main args)
   (run (docker network create --driver bridge ,+network-name+)
        (> 2 "/dev/null"))
@@ -30,6 +32,7 @@ exec scsh -ll dope-deploy-special-forms.scm -ll dope-deploy-temp-dir.scm -ll dop
          --name ,+instance-name+
          --net ,+network-name+
          --restart always
+         -v ,(string-append +config-source+ ":/home/opam/config:ro")
          -d
          ,+build-name+)))
       (error "Failed to start instance" +instance-name+)))
