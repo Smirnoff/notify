@@ -1,14 +1,18 @@
-#!/bin/bash
-exec scsh -ll dope-deploy-special-forms.scm -ll dope-deploy-temp-dir.scm -ll dope-deploy-git.scm -o dope-deploy-special-forms -o dope-deploy-git -o dope-deploy-temp-dir -o srfi-2 -e main -s $0 "$@" # -*- mode: Scheme; -*-
-!#
+#! /bin/sh
+#| # -*- Scheme -*-
+exec csi -ss "$0" "$@"
+|#
+
+(use posix)
+
+(load (string-append (get-environment-variable "DOPE_DEPLOY_LIB")))
 
 (define (master-ref? ref)
   (string-suffix? "master" ref))
 
 (define (main args)
-  (unless (= (length args) 2) (error "Bad arguments" args))
-  (let ((script (car args))
-        (ref    (cadr args)))
+  (unless (= (length args) 1) (error "Bad arguments" args))
+  (let ((ref (car args)))
     (unless (master-ref? ref)
       (format #t "Not master ref, not updating: ~s\n" ref))
     (when (master-ref? ref)
@@ -16,5 +20,5 @@ exec scsh -ll dope-deploy-special-forms.scm -ll dope-deploy-temp-dir.scm -ll dop
       (call-with-temp-directory
        (lambda (temp-dir)
          (git-checkout temp-dir 'master)
-         (chdir temp-dir)
-         (run (./ensure-running.scm)))))))
+         (change-directory temp-dir)
+         (run-standard-redirects/false (./ensure-running.scm)))))))

@@ -1,11 +1,14 @@
-#!/bin/bash
-exec scsh -ll dope-deploy-special-forms.scm -ll dope-deploy-temp-dir.scm -ll dope-deploy-git.scm -o dope-deploy-special-forms -o srfi-2 -e main -s $0 "$@" # -*- mode: Scheme; -*-
-!#
+#! /bin/sh
+#| # -*- Scheme -*-
+exec csi -ss "$0" "$@"
+|#
+
+(use posix)
+
+(load (string-append (get-environment-variable "DOPE_DEPLOY_LIB")))
+(load-relative "repo-config.scm")
 
 (define (main args)
-  ;; rebuild
-  (run (./rebuild.scm "."))
-
-  ;; restart
-  (run (./stop-instances.scm))
-  (run (./start-instances.scm)))
+  (run-standard-redirects/false (./rebuild.scm))
+  (run-standard-redirects/false (./stop-instances.scm))
+  (run-standard-redirects/false (./start-instances.scm)))

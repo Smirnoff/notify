@@ -1,38 +1,30 @@
-#!/bin/bash
-exec scsh -ll dope-deploy-special-forms.scm -ll dope-deploy-temp-dir.scm -ll dope-deploy-git.scm -ll dope-deploy-user.scm -o dope-deploy-user -o dope-deploy-special-forms -o srfi-2 -e main -s $0 "$@" # -*- mode: Scheme; -*-
-!#
+#! /bin/sh
+#| # -*- Scheme -*-
+exec csi -ss "$0" "$@"
+|#
 
-(define +build-name+ "hacker-news-notify-api")
-(define +instance-name+ (string-append +build-name+ "-instance"))
-(define +network-name+ "canton-internal")
-(define +data-base+ (string-append (getenv "HOME") "/dev-data"))
+(use posix)
 
-(define +couchdb-instance-name+ (string-append +build-name+ "-couchdb-instance"))
-(define +couchdb-data-dir+
-  (string-append +data-base+ "/" +couchdb-instance-name+ "/"))
-
-(define +config-source+ (string-append (getenv "HOME") "/config/" +instance-name+))
+(load (string-append (get-environment-variable "DOPE_DEPLOY_LIB")))
+(load-relative "repo-config.scm")
 
 (define (main args)
-  (run (docker network create --driver bridge ,+network-name+)
-       (> 2 "/dev/null"))
-  (or (zero?
-       (run
-        (docker run
-         --name ,+couchdb-instance-name+
-         --net ,+network-name+
-         --restart always
-         -v ,(string-append +couchdb-data-dir+ ":/usr/local/var/lib/couchdb:rw")
-         -d
-         couchdb)))
-      (error "Failed to start couchdb" +couchdb-instance-name+))
-  (or (zero?
-       (run
-        (docker run
-         --name ,+instance-name+
-         --net ,+network-name+
-         --restart always
-         -v ,(string-append +config-source+ ":/home/opam/config:ro")
-         -d
-         ,+build-name+)))
-      (error "Failed to start instance" +instance-name+)))
+  (docker-ensure-network! name: (machine-wide-docker-network))
+  (docker-run/error
+   name:    (couchdb-instance-name)
+   net:     (machine-wide-docker-network)
+   restart: 'always
+   detach?: #t
+   volumes: (list (volume-mount source:      (couchdb-data-location)
+                                destination: "/usr/local/var/lib/couchdb"
+                                access:      "rw"))
+   image:   'couchdb)
+  (docker-run/error
+   name:    (api-daemon-instance-name)
+   net:     (machine-wide-docker-network)
+   restart: 'always
+   detach?: #t
+   volumes: (list (volume-mount source:      (api-daemon-config-location)
+                                destination: "/home/opam/config"
+                                access:      "ro"))
+   image:   (api-daemon-build-image)))

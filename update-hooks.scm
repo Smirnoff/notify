@@ -1,14 +1,11 @@
 #! /bin/sh
-exec scsh -dm -m update-hooks -e main -s $0 "$@" # -*- mode: Scheme; -*-
-!#
+#| # -*- Scheme -*-
+exec csi -ss "$0" "$@"
+|#
 
-(define-structure update-hooks
-  (export main
-          )
-  (open scheme-with-scsh srfi-34 srfi-39
-        (subset srfi-13 (string-suffix?))
-        (with-prefix srfi-19 srfi-19:))
-  (begin
+(use posix)
+
+(load (string-append (get-environment-variable "DOPE_DEPLOY_LIB")))
 
 (define +ssh-login+ "brian@notify.uz")
 (define +target-raw-git+ "/home/brian/projects/hacker-news-notify-api.git")
@@ -24,8 +21,9 @@ exec scsh -dm -m update-hooks -e main -s $0 "$@" # -*- mode: Scheme; -*-
             (local-filename (cadr entry))
             (target-filename (string-append +hooks-dir+ "/" hook-name)))
        (if (file-exists? local-filename)
-           (run (ssh ,+ssh-login+ ,(format #f "cat > ~s" target-filename))
-                (< ,local-filename)))))
+           (run-standard-redirects-string
+            (format "ssh ~s ~s < ~s"
+                    +ssh-login+
+                    (format #f "cat > ~s" target-filename)
+                    local-filename)))))
    +hook-files+))
-
-)) ;end
