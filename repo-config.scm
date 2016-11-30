@@ -18,3 +18,6 @@
 
 (define (api-daemon-config-location)
   (string-append (standard-config-location) "/" (api-daemon-instance-name) ""))
+
+(define (production-hostname)
+  "canton")
