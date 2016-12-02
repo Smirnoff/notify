@@ -24,4 +24,6 @@ RUN eval `opam config env` && ocamlbuild -use-ocamlfind run_all.native
 VOLUME /home/opam/config
 RUN ln -s /home/opam/config/config /home/opam/src/config
 
+ENV COLLECTD_DOCKER_APP="hacker-news-notify-api"
+
 CMD ./run_all.native

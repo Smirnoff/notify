@@ -15,6 +15,10 @@ exec csi -ss "$0" "$@"
    net:     (machine-wide-docker-network)
    restart: 'always
    detach?: #t
+   env:     (list (env-variable name:  "COLLECTD_DOCKER_APP"
+                                value: "hacker-news-notify-api")
+                  (env-variable name:  "COLLECTD_DOCKER_TASK"
+                                value: "couchdb"))
    volumes: (list (volume-mount source:      (couchdb-data-location)
                                 destination: "/usr/local/var/lib/couchdb"
                                 access:      "rw"))
@@ -24,6 +28,8 @@ exec csi -ss "$0" "$@"
    net:     (machine-wide-docker-network)
    restart: 'always
    detach?: #t
+   env:     (list (env-variable name:  "COLLECTD_DOCKER_TASK"
+                                value: "daemon"))
    volumes: (list (volume-mount source:      (api-daemon-config-location)
                                 destination: "/home/opam/config"
                                 access:      "ro"))
